@@ -61,6 +61,7 @@ void UBallMovementComponent::MoveUpdatedComponent(float DeltaTime)
 		SetVelocity(FMath::Lerp(Velocity, dir, 0.05f));
 	}
 	// If the ball should return to the "central" location (not the player)
+	// For now we are using the spawn location
 	else if (bReturnToLocation)
 	{
 		FVector ballPos = GetOwner()->GetActorLocation();
@@ -112,30 +113,32 @@ void UBallMovementComponent::SetVelocity(FVector inVelocity)
 
 void UBallMovementComponent::AddForce(FVector inVelocity)
 {
-	if ((Velocity.X > 0 && inVelocity.X > 0) || (Velocity.X < 0 && inVelocity.X < 0))
-	{
-		Velocity.X += inVelocity.X;
-	}
-
-	if ((Velocity.Y > 0 && inVelocity.Y > 0) || (Velocity.Y < 0 && inVelocity.Y < 0))
-	{
-		Velocity.Y += inVelocity.Y;
-	}
-	
-	if ((Velocity.Z > 0 && inVelocity.Z > 0) || (Velocity.Z < 0 && inVelocity.Z < 0))
-	{
-		Velocity.Z += inVelocity.Z;
-	}
-
-	Velocity += inVelocity;
+	if ((Velocity.X > 0 && inVelocity.X > 0) || (Velocity.X < 0 && inVelocity.X < 0))		//
+	{																						//
+		Velocity.X += inVelocity.X;															//
+	}																						//
+																							//
+	if ((Velocity.Y > 0 && inVelocity.Y > 0) || (Velocity.Y < 0 && inVelocity.Y < 0))		//
+	{																						//
+		Velocity.Y += inVelocity.Y;															// I have to revisit this section. I must've had some issue with applying the math?
+	}																						// Seems silly to have different ways to += the velocity stacked
+																							//
+	if ((Velocity.Z > 0 && inVelocity.Z > 0) || (Velocity.Z < 0 && inVelocity.Z < 0))		// The intent though is that when the paddle hits the ball, the force applied to the ball
+	{																						// is equal to the velocity of the paddle.
+		Velocity.Z += inVelocity.Z;															// 
+	}																						//
+																							//
+	Velocity += inVelocity;																	//
 
 	// After applying force, ensure the speed is not greater than our maximum allowed speed
 	if (Velocity.Length() > MaxSpeed)
 	{
+		// Calculate how much "over" we went from the max speed
 		float excess = Velocity.Length() - MaxSpeed;
 
 		FVector velocityUnit = Velocity.GetSafeNormal();
 		
+		// Reduce the speed of the ball by the excess speed, in the direction the ball is currently moving
 		Velocity -= velocityUnit * excess;
 	}
 }
@@ -165,14 +168,17 @@ void UBallMovementComponent::SetReturnToLocation(bool inShouldReturn)
 	bReturnToLocation = inShouldReturn;
 }
 
-// Return to the player as fast as possible
+// Return to a location as fast as possible
 void UBallMovementComponent::AggressiveRecall(bool inShouldReturn, FVector inReturnLocation)
 {
+	// Set member variables
 	bReturnToPlayer = inShouldReturn;
 	ReturnLocation = inReturnLocation;
 
+	// Basically - if the ReturnLocation is a real position passed
 	if (ReturnLocation != FVector::ZeroVector)
 	{
+		// Set the ball movement to max speed. Lerping velocity towards target is done in MoveUpdatedComponent()
 		FVector currVelocityUnit = Velocity.GetSafeNormal();
 		SetVelocity(currVelocityUnit * MaxSpeed);
 	}
